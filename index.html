@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Appraisal or Delta?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column on phones; orange header band, card pool, then two "holds" side by side. Tap-first, drag as a bonus. */
+:root{
+  --navy:#0B2343; --orange:#F26A10; --bg:#F3F5F8; --surface:#FFFFFF; --fg:#13213A; --muted:#5B6A80;
+  --line:#D5DCE6; --ok:#1B7F4B; --okbg:#E3F4EA; --bad:#B42318; --badbg:#FDECEA; --sel:#FFF1E6;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1424;--surface:#13223A;--fg:#E8EEF7;--muted:#9AA9BF;--line:#2A3D5C;--ok:#5DD39A;--okbg:#123826;--bad:#FF8A80;--badbg:#3D1715;--sel:#3A2412;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0A1424;--surface:#13223A;--fg:#E8EEF7;--muted:#9AA9BF;--line:#2A3D5C;--ok:#5DD39A;--okbg:#123826;--bad:#FF8A80;--badbg:#3D1715;--sel:#3A2412;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--orange);color:#fff}
+header .wrap{padding-block:22px 26px}
+.eyebrow{font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;font-size:13px;opacity:.9}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,7vw,44px);line-height:1;margin:6px 0 8px;text-wrap:balance}
+header p{margin:0;max-width:60ch}
+main .wrap{padding-block:18px 120px;display:flex;flex-direction:column;gap:18px}
+.status{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.count{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{flex:1;min-width:120px;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--orange);transition:width .25s}
+h2{font-family:var(--display);font-size:22px;margin:0 0 8px;letter-spacing:.02em}
+.hint{color:var(--muted);font-size:14px;margin:0 0 10px}
+.pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;min-height:20px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-weight:500;cursor:grab;user-select:none;touch-action:none;position:relative;min-height:56px;display:flex;align-items:center}
+.card:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.card.selected{border-color:var(--orange);background:var(--sel);box-shadow:0 0 0 2px var(--orange)}
+.card.dragging{opacity:.35}
+.ghost{position:fixed;pointer-events:none;z-index:50;box-shadow:0 10px 24px rgba(0,0,0,.25);transform:rotate(-2deg);cursor:grabbing}
+.zones{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.zone{border:2px dashed var(--line);border-radius:12px;padding:10px;min-height:150px;display:flex;flex-direction:column;gap:8px;background:transparent;transition:background .15s,border-color .15s}
+.zone.hot{border-color:var(--orange);background:var(--sel)}
+.zone h3{font-family:var(--display);font-size:18px;letter-spacing:.06em;margin:0 0 4px;padding-bottom:6px;border-bottom:1px solid var(--line);text-transform:uppercase}
+.zone.app h3{color:var(--muted)}
+.zone.pd h3{color:var(--orange)}
+.zone .card{font-size:14px;min-height:0;padding:9px 10px}
+.zone .card.ok{border-color:var(--ok);background:var(--okbg)}
+.zone .card.bad{border-color:var(--bad);background:var(--badbg)}
+.mark{font-size:12px;font-weight:600;display:block;margin-top:4px}
+.ok .mark{color:var(--ok)} .bad .mark{color:var(--bad)}
+.zone .card{flex-direction:column;align-items:flex-start}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{font:inherit;font-weight:600;border-radius:10px;padding:12px 20px;cursor:pointer;border:1.5px solid var(--navy);min-height:48px}
+:root .primary{background:var(--navy);color:#fff}
+.primary:disabled{opacity:.4;cursor:not-allowed}
+.ghostbtn{background:transparent;color:var(--fg);border-color:var(--line)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .primary{background:var(--orange);border-color:var(--orange)}}
+:root[data-theme="dark"] .primary{background:var(--orange);border-color:var(--orange)}
+button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.picker{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.12);padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-top:12px}
+.picker .wrap{display:flex;flex-direction:column;gap:8px}
+.picker p{margin:0;font-size:14px;color:var(--muted)}
+.picker p b{color:var(--fg)}
+.picker .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.picker button{padding:10px 8px;font-size:15px}
+.pick-app{background:var(--surface);color:var(--fg);border-color:var(--fg)}
+:root .pick-pd{background:var(--orange);color:#fff;border-color:var(--orange)}
+.reveal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.score{font-family:var(--display);font-size:28px;margin:0}
+.table{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.table div{padding:10px 12px;border-top:1px solid var(--line);font-size:15px}
+.table .th{font-family:var(--display);font-size:17px;letter-spacing:.06em;text-transform:uppercase;border-top:0;background:var(--bg)}
+.table .th.pd{color:var(--orange)}
+.table div:nth-child(2n){border-left:1px solid var(--line)}
+.table .lbl{grid-column:1/-1;background:var(--bg);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 12px;border-left:0!important}
+.key{border-left:4px solid var(--orange);padding:4px 0 4px 12px;margin:0;font-size:17px;max-width:60ch}
+.key b{font-family:var(--display);font-size:19px}
+@media (min-width:760px){.zone .card{font-size:15px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <div class="eyebrow">Crew training activity · Performance Delta</div>
+  <h1>Appraisal or Performance Delta?</h1>
+  <p>Eight statements. Put each one where it belongs, then press Submit to see the answers.</p>
+</div></header>
+
+<main><div class="wrap">
+  <div class="status">
+    <span class="count" id="count">0 of 8 placed</span>
+    <div class="bar"><i id="barfill"></i></div>
+  </div>
+
+  <section id="poolSec">
+    <h2>Statements</h2>
+    <p class="hint">Tap a statement, then choose where it goes. On a laptop you can also drag it.</p>
+    <div class="pool" id="pool"></div>
+  </section>
+
+  <section>
+    <div class="zones">
+      <div class="zone app" data-zone="A" id="zoneA"><h3>Appraisal</h3></div>
+      <div class="zone pd" data-zone="P" id="zoneP"><h3>Performance Delta</h3></div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="primary" id="submit" disabled>Submit</button>
+    <button class="ghostbtn" id="reset">Start again</button>
+  </div>
+
+  <section class="reveal" id="reveal" hidden>
+    <p class="score" id="score"></p>
+    <p class="key"><b>Performance Delta is not an appraisal.</b><br>It measures the distance between what a leader intends and what the crew actually receive. It is about the team, not about one person.</p>
+    <div class="table" id="table"></div>
+  </section>
+</div></main>
+
+<div class="picker" id="picker" hidden><div class="wrap">
+  <p>Where does <b id="pickTxt"></b> go?</p>
+  <div class="row">
+    <button class="pick-app" data-to="A">Appraisal</button>
+    <button class="pick-pd" data-to="P">Performance Delta</button>
+  </div>
+</div></div>
+
+<script>
+const ROWS=[
+  {topic:"Who it is about",A:"About a particular team member",P:"About team performance"},
+  {topic:"Who answers",A:"Completed by superiors/officers",P:"Answered by everyone on board"},
+  {topic:"Effect on your career",A:"Affects bonuses, salaries, contracts, or promotion decisions",P:"No impact on bonuses, salaries, contracts, or promotion decisions"},
+  {topic:"Purpose",A:"To evaluate individual performance against performance standards",P:"To bridge the gap between work as imagined and work as done"}
+];
+const CARDS=ROWS.flatMap((r,i)=>[{id:"a"+i,text:r.A,ans:"A"},{id:"p"+i,text:r.P,ans:"P"}]);
+const pool=document.getElementById("pool"),zones={A:document.getElementById("zoneA"),P:document.getElementById("zoneP")};
+const picker=document.getElementById("picker"),pickTxt=document.getElementById("pickTxt");
+let place={},selected=null,submitted=false;
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let order=shuffle(CARDS);
+
+function render(){
+  pool.innerHTML="";zones.A.querySelectorAll(".card").forEach(n=>n.remove());zones.P.querySelectorAll(".card").forEach(n=>n.remove());
+  order.forEach(c=>{
+    const el=document.createElement("div");el.className="card";el.tabIndex=0;el.dataset.id=c.id;el.setAttribute("role","button");
+    el.textContent=c.text;
+    if(selected===c.id)el.classList.add("selected");
+    if(submitted&&place[c.id]){
+      const right=place[c.id]===c.ans;el.classList.add(right?"ok":"bad");
+      const m=document.createElement("span");m.className="mark";
+      m.textContent=right?"✓ Correct":"✗ Belongs in "+(c.ans==="A"?"Appraisal":"Performance Delta");el.appendChild(m);
+    }
+    (place[c.id]?zones[place[c.id]]:pool).appendChild(el);
+  });
+  const n=Object.keys(place).length;
+  document.getElementById("count").textContent=submitted?`${score()} of 8 correct`:`${n} of 8 placed`;
+  document.getElementById("barfill").style.width=(n/8*100)+"%";
+  document.getElementById("submit").disabled=submitted||n<8;
+  document.getElementById("poolSec").hidden=n===8;
+  picker.hidden=!selected||submitted;
+  if(selected){pickTxt.textContent="“"+CARDS.find(c=>c.id===selected).text+"”"}
+}
+const score=()=>CARDS.filter(c=>place[c.id]===c.ans).length;
+
+function select(id){if(submitted)return;selected=selected===id?null:id;render()}
+function drop(id,z){if(submitted)return;place[id]=z;selected=null;render()}
+
+picker.addEventListener("click",e=>{const b=e.target.closest("button");if(b&&selected)drop(selected,b.dataset.to)});
+Object.values(zones).forEach(z=>z.addEventListener("click",e=>{if(selected&&!e.target.closest(".card"))drop(selected,z.dataset.zone)}));
+
+document.addEventListener("keydown",e=>{
+  const c=e.target.closest&&e.target.closest(".card");
+  if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();select(c.dataset.id)}
+  if(selected&&(e.key==="1"||e.key==="2"))drop(selected,e.key==="1"?"A":"P");
+});
+
+/* pointer drag with tap fallback */
+let drag=null;
+document.addEventListener("pointerdown",e=>{
+  const c=e.target.closest(".card");if(!c||submitted)return;
+  drag={id:c.dataset.id,el:c,x:e.clientX,y:e.clientY,moved:false,ghost:null};
+});
+document.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
+    drag.moved=true;const r=drag.el.getBoundingClientRect();
+    const g=drag.el.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";document.body.appendChild(g);
+    drag.ghost=g;drag.dx=drag.x-r.left;drag.dy=drag.y-r.top;drag.el.classList.add("dragging");
+  }
+  if(drag.moved){
+    drag.ghost.style.left=(e.clientX-drag.dx)+"px";drag.ghost.style.top=(e.clientY-drag.dy)+"px";
+    const z=zoneAt(e.clientX,e.clientY);Object.values(zones).forEach(n=>n.classList.toggle("hot",n===z));
+  }
+});
+document.addEventListener("pointerup",e=>{
+  if(!drag)return;const d=drag;drag=null;
+  if(d.moved){
+    d.ghost.remove();d.el.classList.remove("dragging");Object.values(zones).forEach(n=>n.classList.remove("hot"));
+    const z=zoneAt(e.clientX,e.clientY);
+    if(z)drop(d.id,z.dataset.zone);
+    else if(document.elementFromPoint(e.clientX,e.clientY)?.closest("#poolSec")){delete place[d.id];render()}
+  } else select(d.id);
+});
+document.addEventListener("pointercancel",()=>{if(drag&&drag.ghost){drag.ghost.remove();drag.el.classList.remove("dragging")}drag=null;Object.values(zones).forEach(n=>n.classList.remove("hot"))});
+function zoneAt(x,y){const el=document.elementFromPoint(x,y);return el&&el.closest(".zone")}
+
+document.getElementById("submit").addEventListener("click",()=>{
+  submitted=true;selected=null;render();
+  const s=score();
+  document.getElementById("score").textContent=s===8?"8 out of 8. Well done.":`${s} out of 8. Here is how they pair up.`;
+  const t=document.getElementById("table");
+  t.innerHTML='<div class="th">Appraisal</div><div class="th pd">Performance Delta</div>'+
+    ROWS.map(r=>`<div class="lbl">${r.topic}</div><div>${r.A}</div><div>${r.P}</div>`).join("");
+  const rv=document.getElementById("reveal");rv.hidden=false;rv.scrollIntoView({behavior:"smooth",block:"start"});
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  place={};selected=null;submitted=false;order=shuffle(CARDS);document.getElementById("reveal").hidden=true;render();window.scrollTo({top:0});
+});
+render();
+</script>
+</body>
+</html>
