@@ -130,6 +130,15 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 </div></div>
 
 <script>
+const ENDPOINT="https://script.google.com/macros/s/AKfycbyREKAUcgfmGkxEllFW2tPL2Py1S0azl5srLe0F6HNV-RhSP317dvUOez9G9tkpfCyZ/exec";
+function deviceId(){try{let id=localStorage.getItem("pdDevice");if(!id){id=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("pdDevice",id)}return id}catch(e){return "x"+Math.random().toString(36).slice(2)}}
+let sent=false;
+function sendResult(s,wrong){
+  if(sent||!/^https:/.test(ENDPOINT))return;sent=true;
+  const body=JSON.stringify({score:s,wrong:wrong.join(","),device:deviceId()});
+  const tryOnce=n=>fetch(ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body}).catch(()=>{if(n<3)setTimeout(()=>tryOnce(n+1),1500*(n+1))});
+  tryOnce(0);
+}
 const ROWS=[
   {topic:"Who it is about",A:"About a particular team member",P:"About team performance"},
   {topic:"Who answers",A:"Completed by superiors/officers",P:"Answered by everyone on board"},
@@ -212,6 +221,7 @@ function zoneAt(x,y){const el=document.elementFromPoint(x,y);return el&&el.close
 document.getElementById("submit").addEventListener("click",()=>{
   submitted=true;selected=null;render();
   const s=score();
+  sendResult(s,CARDS.filter(c=>place[c.id]!==c.ans).map(c=>c.id));
   document.getElementById("score").textContent=s===8?"8 out of 8. Well done.":`${s} out of 8. Here is how they pair up.`;
   const t=document.getElementById("table");
   t.innerHTML='<div class="th">Appraisal</div><div class="th pd">Performance Delta</div>'+
