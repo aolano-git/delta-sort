@@ -28,7 +28,7 @@ header .wrap{padding-block:22px 26px}
 .eyebrow{font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;font-size:13px;opacity:.9}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,7vw,44px);line-height:1;margin:6px 0 8px;text-wrap:balance}
 header p{margin:0;max-width:60ch}
-main .wrap{padding-block:18px 120px;display:flex;flex-direction:column;gap:18px}
+main .wrap{padding-block:18px 40px;display:flex;flex-direction:column;gap:18px}
 .steps{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 .steps h2{font-size:20px;margin:0 0 6px}
 .steps ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;max-width:62ch}
@@ -49,6 +49,16 @@ h2{font-family:var(--display);font-size:22px;margin:0 0 8px;letter-spacing:.02em
 .zones{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .zone{border:2px dashed var(--line);border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;gap:8px;background:transparent;transition:background .15s,border-color .15s}
 .zone.hot{border-color:var(--orange);background:var(--sel)}
+.zone .tapme{display:none;font-family:var(--display);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:14px;text-align:center;padding:10px 6px;border-radius:8px;margin-top:auto}
+.zones.ready .zone{border-style:solid;cursor:pointer}
+.zones.ready .zone.app{border-color:var(--fg);background:var(--surface)}
+.zones.ready .zone.pd{border-color:var(--orange);background:var(--sel)}
+.zones.ready .zone .tapme{display:block}
+.zones.ready .zone.app .tapme{background:var(--fg);color:var(--bg)}
+.zones.ready .zone.pd .tapme{background:var(--orange);color:#fff}
+.zones.ready .zone h3{font-size:20px}
+@media (prefers-reduced-motion:no-preference){.zones.ready .zone{animation:pulse 1.4s ease-in-out infinite}}
+@keyframes pulse{50%{box-shadow:0 0 0 4px var(--sel)}}
 .zone h3{font-family:var(--display);font-size:18px;letter-spacing:.06em;margin:0 0 4px;padding-bottom:6px;border-bottom:1px solid var(--line);text-transform:uppercase}
 .zone.app h3{color:var(--muted)}
 .zone.pd h3{color:var(--orange)}
@@ -66,12 +76,6 @@ button{font:inherit;font-weight:600;border-radius:10px;padding:12px 20px;cursor:
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .primary{background:var(--orange);border-color:var(--orange)}}
 :root[data-theme="dark"] .primary{background:var(--orange);border-color:var(--orange)}
 button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
-.picker{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.12);padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-top:12px}
-.picker .wrap{display:flex;flex-direction:column;gap:8px}
-.picker p{margin:0;font-size:14px;color:var(--muted)}
-.picker p b{color:var(--fg)}
-.picker .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.picker button{padding:10px 8px;font-size:15px}
 .pick-app{background:var(--surface);color:var(--fg);border-color:var(--fg)}
 :root .pick-pd{background:var(--orange);color:#fff;border-color:var(--orange)}
 .reveal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
@@ -101,7 +105,7 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
     <h2>What to do</h2>
     <ol>
       <li><b>Tap a statement card.</b> It turns orange.</li>
-      <li><b>Tap Appraisal or Performance Delta</b> in the bar at the bottom of your screen. The card moves into that box.</li>
+      <li><b>Tap the Appraisal box or the Performance Delta box</b> at the top. Both boxes light up when a card is selected. The card moves into the box you tap.</li>
       <li><b>Repeat for all 8 cards.</b> Changed your mind? Tap the card in the box and choose again.</li>
       <li><b>Press Submit.</b> Green means correct, red means wrong, and the right answers are shown.</li>
     </ol>
@@ -114,9 +118,9 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
   </div>
 
   <section>
-    <div class="zones">
-      <div class="zone app" data-zone="A" id="zoneA"><h3>Appraisal</h3></div>
-      <div class="zone pd" data-zone="P" id="zoneP"><h3>Performance Delta</h3></div>
+    <div class="zones" id="zones">
+      <div class="zone app" data-zone="A" id="zoneA" role="button" tabindex="0"><h3>Appraisal</h3><span class="tapme">Tap to place here</span></div>
+      <div class="zone pd" data-zone="P" id="zoneP" role="button" tabindex="0"><h3>Performance Delta</h3><span class="tapme">Tap to place here</span></div>
     </div>
   </section>
 
@@ -138,13 +142,7 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
   </section>
 </div></main>
 
-<div class="picker" id="picker" hidden><div class="wrap">
-  <p>Put <b id="pickTxt"></b> in:</p>
-  <div class="row">
-    <button class="pick-app" data-to="A">Appraisal</button>
-    <button class="pick-pd" data-to="P">Performance Delta</button>
-  </div>
-</div></div>
+
 
 <script>
 const ENDPOINT="https://script.google.com/macros/s/AKfycbyREKAUcgfmGkxEllFW2tPL2Py1S0azl5srLe0F6HNV-RhSP317dvUOez9G9tkpfCyZ/exec";
@@ -164,7 +162,7 @@ const ROWS=[
 ];
 const CARDS=ROWS.flatMap((r,i)=>[{id:"a"+i,text:r.A,ans:"A"},{id:"p"+i,text:r.P,ans:"P"}]);
 const pool=document.getElementById("pool"),zones={A:document.getElementById("zoneA"),P:document.getElementById("zoneP")};
-const picker=document.getElementById("picker"),pickTxt=document.getElementById("pickTxt");
+const zonesEl=document.getElementById("zones");
 let place={},selected=null,submitted=false;
 
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -190,20 +188,21 @@ function render(){
   document.getElementById("poolSec").hidden=n===8;
   document.getElementById("left").textContent=(8-n)+(8-n===1?" card":" cards")+" left to place";
   document.getElementById("steps").hidden=submitted;
-  picker.hidden=!selected||submitted;
-  if(selected){pickTxt.textContent="“"+CARDS.find(c=>c.id===selected).text+"”"}
+  zonesEl.classList.toggle("ready",!!selected&&!submitted);
 }
 const score=()=>CARDS.filter(c=>place[c.id]===c.ans).length;
 
-function select(id){if(submitted)return;selected=selected===id?null:id;render()}
+function select(id){if(submitted)return;selected=selected===id?null:id;render();
+  if(selected){const r=zonesEl.getBoundingClientRect();if(r.top<0||r.top>window.innerHeight*0.5)zonesEl.scrollIntoView({behavior:"smooth",block:"start"})}}
 function drop(id,z){if(submitted)return;place[id]=z;selected=null;render()}
 
-picker.addEventListener("click",e=>{const b=e.target.closest("button");if(b&&selected)drop(selected,b.dataset.to)});
 Object.values(zones).forEach(z=>z.addEventListener("click",e=>{if(selected&&!e.target.closest(".card"))drop(selected,z.dataset.zone)}));
 
 document.addEventListener("keydown",e=>{
   const c=e.target.closest&&e.target.closest(".card");
-  if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();select(c.dataset.id)}
+  if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();select(c.dataset.id);return}
+  const z=e.target.closest&&e.target.closest(".zone");
+  if(z&&selected&&(e.key==="Enter"||e.key===" ")){e.preventDefault();drop(selected,z.dataset.zone)}
   if(selected&&(e.key==="1"||e.key==="2"))drop(selected,e.key==="1"?"A":"P");
 });
 
@@ -232,7 +231,11 @@ document.addEventListener("pointerup",e=>{
     const z=zoneAt(e.clientX,e.clientY);
     if(z)drop(d.id,z.dataset.zone);
     else if(document.elementFromPoint(e.clientX,e.clientY)?.closest("#poolSec")){delete place[d.id];render()}
-  } else select(d.id);
+  } else {
+    const inZone=d.el.closest(".zone");
+    if(selected&&selected!==d.id&&inZone)drop(selected,inZone.dataset.zone);
+    else select(d.id);
+  }
 });
 document.addEventListener("pointercancel",()=>{if(drag&&drag.ghost){drag.ghost.remove();drag.el.classList.remove("dragging")}drag=null;Object.values(zones).forEach(n=>n.classList.remove("hot"))});
 function zoneAt(x,y){const el=document.elementFromPoint(x,y);return el&&el.closest(".zone")}
